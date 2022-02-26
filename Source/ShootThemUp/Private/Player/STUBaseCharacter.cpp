@@ -8,6 +8,7 @@
 #include "Components/STUHealthComponent.h"
 #include "Components/STUWeaponComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 
@@ -71,7 +72,10 @@ void ASTUBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     PlayerInputComponent->BindAction("Run", IE_Pressed, this, &ASTUBaseCharacter::OnStartRunning);
     PlayerInputComponent->BindAction("Run", IE_Released, this, &ASTUBaseCharacter::OnStopRunning);
     PlayerInputComponent->BindAction("Jump", IE_Pressed ,this, &ASTUBaseCharacter::Jump);
-    PlayerInputComponent->BindAction("Fire", IE_Pressed, WeaponComponent, &USTUWeaponComponent::Fire);
+    PlayerInputComponent->BindAction("Fire", IE_Pressed, WeaponComponent, &USTUWeaponComponent::StartFire);
+    PlayerInputComponent->BindAction("Fire", IE_Released, WeaponComponent, &USTUWeaponComponent::StopFire);
+    PlayerInputComponent->BindAction("SwapWeapon", IE_Pressed, WeaponComponent, &USTUWeaponComponent::NextWeapon);
+    PlayerInputComponent->BindAction("Reload", IE_Pressed, WeaponComponent, &USTUWeaponComponent::Reload);
 }
 
 
@@ -126,6 +130,9 @@ void ASTUBaseCharacter::OnDeath()
     {
         Controller->ChangeState(NAME_Spectating);
     }
+
+    GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+    WeaponComponent->StopFire();
 }
 
 void ASTUBaseCharacter::OnHealthChanged(float Health)

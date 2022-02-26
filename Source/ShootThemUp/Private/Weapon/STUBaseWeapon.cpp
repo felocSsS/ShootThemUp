@@ -24,51 +24,126 @@ void ASTUBaseWeapon::BeginPlay()
 	Super::BeginPlay();
 	
 	check(WeaponMesh);
-
+    checkf(DefaultAmmo.Bullets > 0, TEXT("Bullets count couldn't be less or equal zero"));
+    checkf(DefaultAmmo.Clips > 0, TEXT("Clips count couldn't be less or equal zero"));
+    CurrentAmmo = DefaultAmmo;
 }
 
-
-void ASTUBaseWeapon::Fire()
+void ASTUBaseWeapon::StartFire()
 {
-    /*UE_LOG(LogBaseWeapon, Display, TEXT("Fire!"))*/
+    
+}
 
-    MakeShot();
+void ASTUBaseWeapon::StopFire()
+{
+  
 }
 
 void ASTUBaseWeapon::MakeShot()
 {
+    
+}
+
+void ASTUBaseWeapon::MakeHit(FHitResult& HitResult, const FVector& TraceStart, const FVector& TraceEnd)
+{
     if (!GetWorld()) return;
-
-    const auto Player = Cast<ACharacter>(GetOwner());
-    if (!Player) return;
-
-    const auto Controller = Player->GetController<APlayerController>();
-    if (!Controller) return;
-
-    FVector ViewLocation; 
-    FRotator ViewRotation; 
-    Controller->GetPlayerViewPoint(ViewLocation, ViewRotation);
-
-	const FTransform SocketTransform = WeaponMesh->GetSocketTransform(MuzzeleSocketName);
-    const FVector TraceStart = ViewLocation;              // SocketTransform.GetLocation();
-    const FVector ShootDirection = ViewRotation.Vector(); // SocketTransform.GetRotation().GetForwardVector();
-    const FVector TraceEnd = TraceStart + ShootDirection * TraceMaxDistance;
 
     FCollisionQueryParams CollisionParam;
     CollisionParam.AddIgnoredActor(GetOwner());
 
-    FHitResult HitResult;
     GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECollisionChannel::ECC_Visibility, CollisionParam);
+}
 
-    if (HitResult.bBlockingHit)
+void ASTUBaseWeapon::DecreaseAmmo()
+{
+    if(CurrentAmmo.Bullets == 0) return;
+
+    CurrentAmmo.Bullets--;
+    LogAmmo();
+
+    if (IsClipEmpty() && !ISAmmoEmpty())
     {
-        DrawDebugLine(GetWorld(), SocketTransform.GetLocation(), HitResult.ImpactPoint, FColor::Red, false, 3.f, 0, 3.f);
-        DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 10.f, 24, FColor::Red, false, 5.f);  
-        
-        /*UE_LOG(LogBaseWeapon, Display, TEXT("BONE: %s"), *HitResult.BoneName.ToString());*/
+        StopFire();
+        OnClipEmpty.Broadcast();
     }
-    else
+}
+
+void ASTUBaseWeapon::ChangeClip()
+{
+    if (!CurrentAmmo.Infinite)
     {
-        DrawDebugLine(GetWorld(), SocketTransform.GetLocation(), TraceEnd, FColor::Red, false, 3.f, 0, 3.f);
+        if (CurrentAmmo.Clips == 0) return;
+        CurrentAmmo.Clips -= 1;    
     }
+    CurrentAmmo.Bullets = DefaultAmmo.Bullets;
+}
+
+bool ASTUBaseWeapon::CanReload() const
+{
+    return CurrentAmmo.Bullets < DefaultAmmo.Bullets && CurrentAmmo.Clips > 0;
+}
+
+void ASTUBaseWeapon::LogAmmo()
+{
+    FString AmmoInfo = "Ammo " + FString::FromInt(CurrentAmmo.Bullets) + " / ";
+    AmmoInfo += CurrentAmmo.Infinite ? "Infinite" : FString::FromInt(CurrentAmmo.Clips);
+    UE_LOG(LogBaseWeapon, Display, TEXT("%s"), *AmmoInfo);
+}
+
+APlayerController* ASTUBaseWeapon::GetPlayerController() const
+{
+    const auto Player = Cast<ACharacter>(GetOwner());
+    if (!Player) return nullptr;
+
+    return Player->GetController<APlayerController>();
+}
+
+bool ASTUBaseWeapon::GetPlayerViewPoint(FVector& ViewLocation, FRotator& ViewRotation) const 
+{
+    const auto Controller = GetPlayerController();
+    if (!Controller) return false;
+
+    Controller->GetPlayerViewPoint(ViewLocation, ViewRotation);
+    return true;
+}
+
+bool ASTUBaseWeapon::ISAmmoEmpty() const
+{
+    return !CurrentAmmo.Infinite && CurrentAmmo.Clips == 00 && IsClipEmpty();
+}
+
+bool ASTUBaseWeapon::IsClipEmpty() const
+{
+    return CurrentAmmo.Bullets == 0;
+}
+
+bool ASTUBaseWeapon::GetTraceData(FVector& TraceStart, FVector& TraceEnd, FVector& EditedDir) const
+{
+    FVector ViewLocation; 
+    FRotator ViewRotation; 
+    if(!GetPlayerViewPoint(ViewLocation, ViewRotation)) return false;
+
+    TraceStart = ViewLocation;
+    const FVector ShootDirection = ViewRotation.Vector();
+    EditedDir = ShootDirection;
+    TraceEnd = TraceStart + ShootDirection * TraceMaxDistance;
+    return true;
+}
+
+float ASTUBaseWeapon::GetDegreesBetweenMuzzleAndTrace(FHitResult ImpactPoint, FVector ShotDirection) const
+{
+    //FVector CamLoc;
+    //FRotator CamRot;
+    //if (!GetPlayerViewPoint(CamLoc, CamRot)) return 0.f; // исходя из логики игры продумать, что будет возвращать
+    //FVector CameraForwardVec = CamRot.Vector();
+
+    const FVector AdjustedDirection = (ImpactPoint.ImpactPoint - GetMuzzleWorldLocation()).GetSafeNormal();
+    float DegreesBetween = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(AdjustedDirection, ShotDirection))); 
+    
+    return DegreesBetween;
+}
+
+FVector ASTUBaseWeapon::GetMuzzleWorldLocation() const 
+{
+    return WeaponMesh->GetSocketLocation(MuzzeleSocketName);
 }

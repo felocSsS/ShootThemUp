@@ -90,6 +90,41 @@ void USTUWeaponComponent::Reload()
     ChangeClip();
 }
 
+bool USTUWeaponComponent::GetCurrentWeaponUIData(FWeaponUIData& UIData) const
+{
+    if (CurrentWeapon)
+    {
+        UIData = CurrentWeapon->GetUIData();
+        return true;
+    }
+
+    return false;
+}
+
+bool USTUWeaponComponent::GetCurrentWeaponAmmoData(FAmmoData& AmmoData) const
+{
+    if (CurrentWeapon)
+    {
+        AmmoData = CurrentWeapon->GetAmmoData();
+        return true;
+    }
+
+    return false;
+}
+
+bool USTUWeaponComponent::TryAddAmmo(TSubclassOf<ASTUBaseWeapon> WeaponType, int32 ClipsAmount)
+{
+    for (const auto Weapon : Weapons)
+    {
+        if (Weapon && Weapon->IsA(WeaponType))
+        {
+            return Weapon->TryToAddAmmo(ClipsAmount);
+        }
+    }
+    return false;
+}
+
+
 void USTUWeaponComponent::AttachWeaponToSocket(ASTUBaseWeapon* Weapon, USceneComponent* SceneComponent,const FName& SocketName)
 {
     if (!Weapon || !SceneComponent) return;
@@ -162,11 +197,26 @@ void USTUWeaponComponent::OnReloadFinished(USkeletalMeshComponent* MeshComponent
     ReloadAnimInProgress = false;
 }
 
-void USTUWeaponComponent::OnClipEmpty()
+void USTUWeaponComponent::OnClipEmpty(ASTUBaseWeapon* AmmoEmptyWeapon)
 {
     if (CurrentWeapon->AutoReload) 
     {
-        ChangeClip();
+        if (!AmmoEmptyWeapon) return;
+
+        if (CurrentWeapon == AmmoEmptyWeapon)
+        {
+            ChangeClip();
+        }
+        else
+        {
+            for (const auto Weapon : Weapons)
+            {
+                if (Weapon == AmmoEmptyWeapon && Weapon->AutoReload)
+                {
+                    Weapon->ChangeClip();
+                }
+            }
+        }
     }
 }
 

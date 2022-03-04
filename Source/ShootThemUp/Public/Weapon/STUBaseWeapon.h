@@ -4,27 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "STUCoreTypes.h"
 #include "STUBaseWeapon.generated.h"
 
-DECLARE_MULTICAST_DELEGATE(FOnClipEmptySignature);
-
 class USkeletalMeshComponent;
-
-USTRUCT(BlueprintType)
-struct FAmmoData
-{
-	GENERATED_USTRUCT_BODY()
-
-		UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
-		int32 Bullets;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon", meta = (EditCondition = "!Infinite"))
-		int32 Clips;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
-		bool Infinite;
-};
-
 
 UCLASS()
 class SHOOTTHEMUP_API ASTUBaseWeapon : public AActor
@@ -49,6 +32,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
     FAmmoData DefaultAmmo{15, 10, false};
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+    FWeaponUIData UIData;
+
 	virtual void BeginPlay() override;
 
 	virtual void MakeShot();
@@ -57,11 +43,11 @@ protected:
 
     void MakeHit(FHitResult& HitResult, const FVector& TraceStart, const FVector& TraceEnd);
     void DecreaseAmmo();
-    void LogAmmo();
 
 	bool GetPlayerViewPoint(FVector& ViewLocation, FRotator& ViewRotation) const;
     bool ISAmmoEmpty() const;
     bool IsClipEmpty() const;
+    bool IsAmmoFull() const;
 
 	float GetDegreesBetweenMuzzleAndTrace(FHitResult ImpactPoint, FVector ShotDirection) const;
 
@@ -71,17 +57,21 @@ protected:
 
 
 public:	
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	bool AutoReload = false;
+
 	virtual void StartFire();
 	virtual void StopFire();
 
 	void ChangeClip();
 
 	bool CanReload() const;
+    bool TryToAddAmmo(int32 ClipsAmount);
 
 	FOnClipEmptySignature OnClipEmpty;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	bool AutoReload = false;
+	FWeaponUIData GetUIData() const { return UIData; }
+    FAmmoData GetAmmoData() const { return CurrentAmmo; }
 
 private:
     FAmmoData CurrentAmmo;

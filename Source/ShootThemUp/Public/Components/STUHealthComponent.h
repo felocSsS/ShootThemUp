@@ -4,10 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "STUCoreTypes.h"
 #include "STUHealthComponent.generated.h"
-
-DECLARE_MULTICAST_DELEGATE(FOnDeath);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SHOOTTHEMUP_API USTUHealthComponent : public UActorComponent
@@ -38,11 +36,17 @@ protected:
 public:
 	float GetHealth() const { return Health; }
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Health")
     bool IsDead() const { return FMath::IsNearlyZero(Health); }
+
+    UFUNCTION(BlueprintCallable, Category = "Health")
+    float GetHealthPersent() const { return Health / MaxHealth; }
 
 	FOnDeath OnDeath;
     FOnHealthChanged OnHealthChanged;
+
+    bool TryToAddHealth(float HealthAmount);
+    bool IsHealthFull() const;
 
 private:
     float Health = 0.0f;

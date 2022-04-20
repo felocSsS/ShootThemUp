@@ -8,6 +8,10 @@
 
 class USphereComponent;
 class UProjectileMovementComponent;
+class USTUWeaponFXComponent;
+class UNiagaraComponent;
+class UPointLightComponent;
+class UStaticMeshComponent;
 
 UCLASS()
 class SHOOTTHEMUP_API ASTUProjectile : public AActor
@@ -17,8 +21,6 @@ class SHOOTTHEMUP_API ASTUProjectile : public AActor
 public:	
 	ASTUProjectile();
 
-	void SetShotDirection(const FVector& Direction) { ShotDirection = Direction; }
-
 protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon")
@@ -26,6 +28,18 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Weapon")
     UProjectileMovementComponent* MovementComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+    UPointLightComponent* PointLight;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+    UStaticMeshComponent* StaticMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VFX")
+    USTUWeaponFXComponent* WeaponFXComponent;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+    UNiagaraComponent* FXTrace;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
     float DamageRadius = 200.f;
@@ -37,19 +51,23 @@ protected:
     bool DoFullDamage = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
-    float LifeSeconds = 5.f;
+    float LifeSeconds = 10.f;
 
 	virtual void BeginPlay() override;
 
 public:	
+	void SetShotDirection(const FVector& Direction) { ShotDirection = Direction; }
 
 private:
+    FTimerHandle DestroyTimerHandle;
+
     FVector ShotDirection;
 
 	UFUNCTION()
     void OnProjectileHit(UPrimitiveComponent* HitComponent,
                          AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse,
                          const FHitResult& Hit);
+    void DestroyProjectile();
 
 	AController* GetController() const;
 };

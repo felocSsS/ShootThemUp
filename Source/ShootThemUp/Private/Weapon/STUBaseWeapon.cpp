@@ -7,6 +7,8 @@
 #include "DrawDebughelpers.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Controller.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBaseWeapon, All, All);
 
@@ -50,8 +52,22 @@ void ASTUBaseWeapon::MakeHit(FHitResult& HitResult, const FVector& TraceStart, c
 
     FCollisionQueryParams CollisionParam;
     CollisionParam.AddIgnoredActor(GetOwner());
+    CollisionParam.bReturnPhysicalMaterial = true;
 
     GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECollisionChannel::ECC_Visibility, CollisionParam);
+}
+
+void ASTUBaseWeapon::MakeMultiHit(TArray<FHitResult>& HitResult, const FVector& TraceStart, const FVector& TraceEnd)
+{
+    if(!GetWorld()) return;
+
+    FCollisionObjectQueryParams CollisionObjectTypes;
+    CollisionObjectTypes.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
+    CollisionObjectTypes.AddObjectTypesToQuery(ECollisionChannel::ECC_Pawn);
+    CollisionObjectTypes.AddObjectTypesToQuery(ECollisionChannel::ECC_WorldStatic);
+    
+
+    GetWorld()->LineTraceMultiByObjectType(HitResult, TraceStart, TraceEnd, CollisionObjectTypes);
 }
 
 void ASTUBaseWeapon::DecreaseAmmo()
@@ -88,7 +104,6 @@ bool ASTUBaseWeapon::TryToAddAmmo(int32 ClipsAmount)
 
     if (ISAmmoEmpty())
     {
-        UE_LOG(LogBaseWeapon, Display, TEXT("Ammo was empty"));
         CurrentAmmo.Clips = FMath::Clamp(ClipsAmount, 0, DefaultAmmo.Clips + 1);
         OnClipEmpty.Broadcast(this);
     }
@@ -98,20 +113,17 @@ bool ASTUBaseWeapon::TryToAddAmmo(int32 ClipsAmount)
         if (DefaultAmmo.Clips - NextClipsAmount >= 0)
         {
             CurrentAmmo.Clips = NextClipsAmount;
-            UE_LOG(LogBaseWeapon, Display, TEXT("Clips were added"));
         }
         else
         {
             CurrentAmmo.Clips = DefaultAmmo.Clips;
             CurrentAmmo.Bullets = DefaultAmmo.Bullets;
-            UE_LOG(LogBaseWeapon, Display, TEXT("Ammo is full now"));
         }
     }
     else
     {
         CurrentAmmo.Clips = DefaultAmmo.Clips;
         CurrentAmmo.Bullets = DefaultAmmo.Bullets;
-        UE_LOG(LogBaseWeapon, Display, TEXT("Bullets were added"));
     }
 
     return true;
@@ -179,4 +191,10 @@ float ASTUBaseWeapon::GetDegreesBetweenMuzzleAndTrace(FHitResult ImpactPoint, FV
 FVector ASTUBaseWeapon::GetMuzzleWorldLocation() const 
 {
     return WeaponMesh->GetSocketLocation(MuzzeleSocketName);
+}
+
+UNiagaraComponent* ASTUBaseWeapon::SpawnMuzzleFX()
+{
+    return UNiagaraFunctionLibrary::SpawnSystemAttached(MuzzleFX, WeaponMesh, MuzzeleSocketName, FVector::ZeroVector,
+                                                   FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
 }

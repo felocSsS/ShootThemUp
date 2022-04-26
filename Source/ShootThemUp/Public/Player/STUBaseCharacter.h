@@ -49,6 +49,7 @@ protected:
 
 
     virtual void BeginPlay() override;
+    virtual void OnDeath();
 
 public:
     virtual void Tick(float DeltaTime) override;
@@ -71,7 +72,6 @@ private:
     void OnStartRunning();
     void OnStopRunning();
 
-    void OnDeath();
     void OnHealthChanged(float Health, float HealthDelta);
 
     UFUNCTION()

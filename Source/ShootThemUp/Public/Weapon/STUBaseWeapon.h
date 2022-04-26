@@ -51,9 +51,7 @@ protected:
     void DecreaseAmmo();
 
 	bool GetPlayerViewPoint(FVector& ViewLocation, FRotator& ViewRotation) const;
-    bool ISAmmoEmpty() const;
     bool IsClipEmpty() const;
-    bool IsAmmoFull() const;
 
 	float GetDegreesBetweenMuzzleAndTrace(FHitResult ImpactPoint, FVector ShotDirection) const;
 
@@ -74,6 +72,8 @@ public:
 
 	bool CanReload() const;
     bool TryToAddAmmo(int32 ClipsAmount);
+    bool ISAmmoEmpty() const;
+    bool IsAmmoFull() const;
 
 	FOnClipEmptySignature OnClipEmpty;
 

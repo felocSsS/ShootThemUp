@@ -28,6 +28,7 @@ protected:
 
 public:	
 	virtual void Tick(float DeltaTime) override;
+    bool CouldBeTaken() const;
 
 private:
     float RotationYaw = 0.f;
@@ -36,4 +37,6 @@ private:
     void PickupWasTaken();
     void Respawn();
     void GenerateRotationYaw();
+
+    FTimerHandle RespawnTimerHandle;
 };

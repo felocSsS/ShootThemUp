@@ -66,8 +66,11 @@ void ASTUBaseWeapon::MakeMultiHit(TArray<FHitResult>& HitResult, const FVector& 
     CollisionObjectTypes.AddObjectTypesToQuery(ECollisionChannel::ECC_Pawn);
     CollisionObjectTypes.AddObjectTypesToQuery(ECollisionChannel::ECC_WorldStatic);
     
+    FCollisionQueryParams CollisionParam;
+    CollisionParam.AddIgnoredActor(GetOwner());
+    CollisionParam.bReturnPhysicalMaterial = true;
 
-    GetWorld()->LineTraceMultiByObjectType(HitResult, TraceStart, TraceEnd, CollisionObjectTypes);
+    GetWorld()->LineTraceMultiByObjectType(HitResult, TraceStart, TraceEnd, CollisionObjectTypes, CollisionParam);
 }
 
 void ASTUBaseWeapon::DecreaseAmmo()
@@ -139,10 +142,22 @@ APlayerController* ASTUBaseWeapon::GetPlayerController() const
 
 bool ASTUBaseWeapon::GetPlayerViewPoint(FVector& ViewLocation, FRotator& ViewRotation) const 
 {
-    const auto Controller = GetPlayerController();
-    if (!Controller) return false;
+    const auto STUCharacter = Cast<ACharacter>(GetOwner());
+    if (!STUCharacter) return false;
 
-    Controller->GetPlayerViewPoint(ViewLocation, ViewRotation);
+    if (STUCharacter->IsPlayerControlled())
+    {
+        const auto Controller = GetPlayerController();
+        if (!Controller) return false;
+
+        Controller->GetPlayerViewPoint(ViewLocation, ViewRotation);
+    }
+    else
+    {
+        ViewLocation = GetMuzzleWorldLocation();
+        ViewRotation = WeaponMesh->GetSocketRotation(MuzzeleSocketName);
+    }
+
     return true;
 }
 

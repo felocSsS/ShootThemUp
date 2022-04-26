@@ -33,10 +33,23 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Animation")
     UAnimMontage* EquipAnimMontage;
 
+    UPROPERTY()
+    ASTUBaseWeapon* CurrentWeapon = nullptr;
+
+    UPROPERTY()
+    TArray<ASTUBaseWeapon*> Weapons;
+
+    int32 CurrentWeaponIndex = 0;
+
+    bool CanFire() const;
+    bool CanEquip() const;
+
+    void EquipWeapon(int32 WeaponIndex);
+
 public:
-    void StartFire();
+    virtual void StartFire();
     void StopFire();
-    void NextWeapon();
+    virtual void NextWeapon();
     void Reload();
     
     bool GetCurrentWeaponUIData(FWeaponUIData& UIData) const;
@@ -45,22 +58,13 @@ public:
 
 private:
     UPROPERTY()
-    ASTUBaseWeapon* CurrentWeapon = nullptr;
-
-	UPROPERTY()
-    TArray<ASTUBaseWeapon*> Weapons;
-
-    UPROPERTY()
     UAnimMontage* CurrentReloadAnimMontage = nullptr;
-
-	int32 CurrentWeaponIndex = 0;
 
     bool EquipAnimInProgress = false;
     bool ReloadAnimInProgress = false;
 
 	void SpawnWeapons();
     void AttachWeaponToSocket(ASTUBaseWeapon* Weapon, USceneComponent* SceneComponent, const FName& SocketName);
-    void EquipWeapon(int32 WeaponIndex);
     void PlayAnimMontage(UAnimMontage* Animation);
     void InitAnimation();
     void OnEquipFinished(USkeletalMeshComponent* MeshComponent);
@@ -68,7 +72,5 @@ private:
     void OnClipEmpty(ASTUBaseWeapon* AmmoEmptyWeapon);
     void ChangeClip();
     
-    bool CanFire() const;
-    bool CanEquip() const;
     bool CanReload() const;
 };

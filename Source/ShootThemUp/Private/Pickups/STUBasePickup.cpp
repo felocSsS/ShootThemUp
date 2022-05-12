@@ -23,6 +23,7 @@ void ASTUBasePickup::BeginPlay()
 	Super::BeginPlay();
     check(CollisionComponent);
     GenerateRotationYaw();
+    UE_LOG(LogTemp, Display, TEXT("TEst"))
 }
 
 void ASTUBasePickup::NotifyActorBeginOverlap(AActor* OtherActor)

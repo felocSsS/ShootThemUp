@@ -55,8 +55,6 @@ protected:
 
 	float GetDegreesBetweenMuzzleAndTrace(FHitResult ImpactPoint, FVector ShotDirection) const;
 
-	APlayerController* GetPlayerController() const;
-
 	FVector GetMuzzleWorldLocation() const;
 
 	UNiagaraComponent* SpawnMuzzleFX();

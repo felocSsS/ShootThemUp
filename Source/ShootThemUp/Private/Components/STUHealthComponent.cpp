@@ -2,13 +2,14 @@
 
 
 #include "Components/STUHealthComponent.h"
-#include "GameFramework/Actor.h"
-#include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/Controller.h"
 #include "Engine/World.h"
 #include "TimerManager.h" 
 #include "Camera/CameraShakeBase.h"
 #include "STUGameModeBase.h"
+#include "Physicalmaterials/PhysicalMAterial.h"
+#include "Perception/AISense_Damage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHealthComponent, All, All)
 
@@ -32,6 +33,8 @@ void USTUHealthComponent::BeginPlay()
 	if (ComponentOwner)
     {
         ComponentOwner->OnTakeAnyDamage.AddDynamic(this, &USTUHealthComponent::OnTakeAnyDamage);
+        ComponentOwner->OnTakePointDamage.AddDynamic(this, &USTUHealthComponent::OnTakePointDamege);
+        ComponentOwner->OnTakeRadialDamage.AddDynamic(this, &USTUHealthComponent::OnRadialDamage);
 	}
 }
 
@@ -52,22 +55,6 @@ bool USTUHealthComponent::IsHealthFull() const
 void USTUHealthComponent::OnTakeAnyDamage(AActor* DamageActor, float Damage, const class UDamageType* DamageType,
                                                class AController* InstigatedBy, AActor* DamageCauser)
 {
-    if (Damage <= 0.f || IsDead() || !GetWorld()) return;
-
-    SetHealth(Health - Damage);
-
-	if (IsDead())
-    {
-        Killed(InstigatedBy);
-        OnDeath.Broadcast();
-        GetWorld()->GetTimerManager().ClearTimer(HealTimerHandle);
-    }
-    else if (AutoHeal)
-    {
-        GetWorld()->GetTimerManager().SetTimer(HealTimerHandle, this, &USTUHealthComponent::HealthUpdate, HealUpdateTime, true, HealDelay);
-    }
-
-    PlayCameraShake();
 }
 
 void USTUHealthComponent::HealthUpdate()
@@ -111,4 +98,64 @@ void USTUHealthComponent::Killed(AController* KillerController)
     const auto VictimController = Player ? Player->Controller : nullptr;
 
     GameMode->Killed(KillerController, VictimController);
+}
+
+void USTUHealthComponent::ApplyDamage(float Damage, AController* InstigatedBy)
+{
+    if (Damage <= 0.f || IsDead() || !GetWorld())
+        return;
+
+    SetHealth(Health - Damage);
+
+    if (IsDead())
+    {
+        Killed(InstigatedBy);
+        OnDeath.Broadcast();
+        GetWorld()->GetTimerManager().ClearTimer(HealTimerHandle);
+    }
+    else if (AutoHeal)
+    {
+        GetWorld()->GetTimerManager().SetTimer(HealTimerHandle, this, &USTUHealthComponent::HealthUpdate,
+                                               HealUpdateTime, true, HealDelay);
+    }
+
+    PlayCameraShake();
+    ReportDamageEvent(Damage, InstigatedBy);
+}
+
+float USTUHealthComponent::GetPointDamageModifier(AActor* DamagedActor, const FName& BoneName)
+{
+    const auto Character = Cast<ACharacter>(DamagedActor);
+    if (!Character || !Character->GetMesh() || !Character->GetMesh()->GetBodyInstance(BoneName))
+        return 1.0f;
+
+    const auto PhysMaterial = Character->GetMesh()->GetBodyInstance(BoneName)->GetSimplePhysicalMaterial();
+    if (!PhysMaterial || !DamageModifiers.Contains(PhysMaterial)) return 1.0f;
+
+    return DamageModifiers[PhysMaterial];
+}
+
+void USTUHealthComponent::OnTakePointDamege(AActor* DamagedActor, float Damage,
+                                            AController* InstigatedBy, FVector HitLocation,
+                                            UPrimitiveComponent* FHitComponent, FName BoneName,
+                                            FVector ShotFromDirection, const UDamageType* DamageType,
+                                            AActor* DamageCauser)
+{
+    const auto FinalDamage = Damage * GetPointDamageModifier(DamagedActor, BoneName);
+    ApplyDamage(Damage, InstigatedBy);
+}
+
+void USTUHealthComponent::OnRadialDamage(AActor* DamagedActor, float Damage,
+                                         const UDamageType* DamageType, FVector Origin, FHitResult HitInfo,
+                                         AController* InstigatedBy, AActor* DamageCauser)
+{
+    ApplyDamage(Damage, InstigatedBy);
+}
+
+void USTUHealthComponent::ReportDamageEvent(float Damage, AController* InstigatedBy)
+{
+    if (!GetWorld() || !InstigatedBy || !InstigatedBy->GetPawn() || !GetOwner()) return;
+
+    UAISense_Damage::ReportDamageEvent(GetWorld(), GetOwner(), InstigatedBy->GetPawn(), Damage,
+                                       InstigatedBy->GetPawn()->GetActorLocation(), GetOwner()->GetActorLocation());
 }

@@ -60,6 +60,7 @@ private:
     void StartRespawn(AController* Controller);
     void GameOver();
     void SetMatchState(ESTUMatchState State); 
+    void StopAllFire();
 
     FLinearColor DetermineColorByTeamID(int32 TeamID) const;
 };

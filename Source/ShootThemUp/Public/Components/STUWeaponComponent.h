@@ -56,6 +56,8 @@ public:
     bool GetCurrentWeaponAmmoData(FAmmoData& AmmoData) const;
     bool TryAddAmmo(TSubclassOf<ASTUBaseWeapon> WeaponType, int32 ClipsAmount);
 
+    void Zoom(bool Enabled);
+
 private:
     UPROPERTY()
     UAnimMontage* CurrentReloadAnimMontage = nullptr;

@@ -80,6 +80,8 @@ public:
     bool ISAmmoEmpty() const;
     bool IsAmmoFull() const;
 
+	virtual void Zoom(bool Enabled){};
+
 	FOnClipEmptySignature OnClipEmpty;
 
 	FWeaponUIData GetUIData() const { return UIData; }

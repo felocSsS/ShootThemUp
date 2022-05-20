@@ -3,12 +3,19 @@
 
 #include "Weapon/STULauncherWeapon.h"
 #include "Weapon/STUProjectile.h"
+#include "Sound/SoundCue.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogRifleWeapon, All, All);
 
 void ASTULauncherWeapon::StartFire()
 {
-    if (IsClipEmpty()) return;
+    if (IsClipEmpty())
+    {
+        UGameplayStatics::SpawnSoundAtLocation(GetWorld(), NoAmmoSound, GetActorLocation());   
+        UE_LOG(LogTemp, Display, TEXT("Text"));
+        return;
+    }
     MakeShot();
 }
 
@@ -46,5 +53,6 @@ void ASTULauncherWeapon::MakeShot()
         Projectile->SetOwner(GetOwner());
         DecreaseAmmo();
         SpawnMuzzleFX();
+        UGameplayStatics::SpawnSoundAttached(FireSound, WeaponMesh, MuzzeleSocketName);
     }
 }

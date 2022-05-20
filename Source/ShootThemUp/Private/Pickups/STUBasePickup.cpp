@@ -3,6 +3,8 @@
 
 #include "Pickups/STUBasePickup.h"
 #include "Components/SphereComponent.h"
+#include "Sound/SoundCue.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBasePickUp, All, All);
 
@@ -15,7 +17,6 @@ ASTUBasePickup::ASTUBasePickup()
     CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
     SetRootComponent(CollisionComponent);
-
 }
 
 void ASTUBasePickup::BeginPlay()
@@ -23,7 +24,6 @@ void ASTUBasePickup::BeginPlay()
 	Super::BeginPlay();
     check(CollisionComponent);
     GenerateRotationYaw();
-    UE_LOG(LogTemp, Display, TEXT("TEst"))
 }
 
 void ASTUBasePickup::NotifyActorBeginOverlap(AActor* OtherActor)
@@ -62,7 +62,8 @@ void ASTUBasePickup::PickupWasTaken()
         GetRootComponent()->SetVisibility(false, true);
     }
 
-    GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &ASTUBasePickup::Respawn, RespawbTime);
+    GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &ASTUBasePickup::Respawn, RespawnTime);
+    UGameplayStatics::PlaySoundAtLocation(GetWorld(), PickupTakenSound, GetActorLocation());
 }
 
 void ASTUBasePickup::Respawn()
